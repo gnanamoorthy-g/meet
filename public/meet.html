@@ -1,20 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
     <link rel="stylesheet" href="meet.css">
     <title>Meet</title>
 </head>
+
 <body>
     <div id="root_container">
         <div id="canvas_container">
             <!-- <canvas></canvas> -->
-            <video id="video_player" crossorigin="anonymous"  autoplay></video>
+            <video id="video_player" crossorigin="anonymous" autoplay></video>
         </div>
-        <div id="tool_panel" ></div>
+        <div id="tool_panel"></div>
     </div>
     <script type="module" src="script.js"></script>
 </body>
+
 </html>

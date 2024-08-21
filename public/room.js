@@ -1,5 +1,5 @@
-class MeetingRoom{
-    constructor(user){
+class MeetingRoom {
+    constructor(user) {
         this.room_id = crypto.randomUUID();
         this.participants = [];
         this.addParticipant(user);
@@ -7,7 +7,7 @@ class MeetingRoom{
         this.createdBy = user
     }
 
-    addParticipant(participant){
+    addParticipant(participant) {
         this.participants.push(participant);
     }
 };

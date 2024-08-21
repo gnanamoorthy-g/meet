@@ -1,19 +1,23 @@
-body{
+body {
     margin: 0px;
 }
-#root_container{
+
+#root_container {
     display: grid;
     grid-template-rows: 90% 10%;
     background-color: aliceblue;
     height: 100vh;
     width: 100vw;
 }
-#canvas_container{
+
+#canvas_container {
     display: flex;
     align-items: center;
     justify-content: center;
 }
-canvas , video{
+
+canvas,
+video {
     height: 95%;
     width: 75%;
     background-color: black;

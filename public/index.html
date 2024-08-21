@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
     <link rel="stylesheet" href="index.css">
     <title>Meet</title>
 </head>
+
 <body>
     <header>
         <div class="header_title">
@@ -18,8 +23,11 @@
         </div>
     </header>
     <main>
-        <button class="create_meeting">Create an Instant Meeting</button>
+        <button class="create_meeting">
+            <span class="button__text">Create an Instant Meeting</span>
+        </button>
     </main>
     <script type="module" src="./index.js"></script>
 </body>
+
 </html>
