@@ -1,11 +1,9 @@
 import Participant from './participant.js';
 import MeetingRoom from './room.js';
 
-
-const user = new Participant('Klaus','Kinski');
-console.log(user,"user");
-const meeting = new MeetingRoom(user);
-console.log(meeting,"roomId");
+const path = window.location.pathname;
+const meeting_id = path.replace("/","");
+console.log(meeting_id);
 
 const video = document.getElementById('video_player');
 

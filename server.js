@@ -6,9 +6,3 @@ const path = require('path');
 
 
 server.listen(8001);
-
-app.use(express.static('public'));
-
-app.get('/:room',(req,res) => {
-    res.sendFile(path.join(__dirname, 'public', 'meet.html')); 
-})
