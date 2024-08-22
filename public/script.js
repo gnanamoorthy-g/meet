@@ -9,7 +9,7 @@ console.log(meeting_id);
 var socket;
 
 const create_signaling_server = (user, meeting) => {
-  socket = io.connect();
+  socket = io();
   socket.on("connect", () => {
     if (socket.connected) {
       socket.emit("user_joined_meeting_room", {
@@ -26,10 +26,10 @@ const create_signaling_server = (user, meeting) => {
 const meeting = new MeetingRoom();
 meeting.room_id = meeting_id;
 
-let currentUser = localStorage.getItem("user_info");
+let currentUser = JSON.parse(localStorage.getItem("user_info"));
 if (!currentUser) {
   currentUser = new Participant(...random_name_generator());
-  localStorage.setItem("user_info", currentUser);
+  localStorage.setItem("user_info", JSON.stringify(currentUser));
 }
 create_signaling_server(currentUser, meeting);
 const video = document.getElementById("video_player");
