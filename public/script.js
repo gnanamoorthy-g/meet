@@ -64,3 +64,7 @@ navigator.mediaDevices
       console.error(`getUserMedia error: ${error.name}`, error);
     }
   });
+
+window.addEventListener("beforeunload", (event) => {
+  socket.close();
+});

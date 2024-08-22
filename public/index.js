@@ -43,6 +43,7 @@ const updateTime = () => {
 };
 const timeUpdateInterval = setInterval(updateTime, 6000);
 window.addEventListener("beforeunload", (event) => {
+    socket.close();
     clearTimeout(createRoomTimer);
     clearInterval(timeUpdateInterval);
 });
