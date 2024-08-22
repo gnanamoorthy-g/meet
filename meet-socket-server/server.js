@@ -9,12 +9,6 @@ server.listen(8001, () => {
     console.log("app running on port 8000")
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/:room', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'meet.html'));
-});
-
 var connections = [];
 
 io.on("connection", (socket) => {
