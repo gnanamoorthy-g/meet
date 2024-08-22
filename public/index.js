@@ -5,6 +5,8 @@ const timeElement = document.querySelector(".time");
 timeElement.innerHTML = new Date();
 
 var socket;
+//const SOCKET_URL = "http://localhost:8005";
+const SOCKET_URL = "https://meet-server-nine.vercel.app";
 var createRoomTimer;
 
 const createMeetingBtn = document.querySelector(".create_meeting");
@@ -21,7 +23,7 @@ createMeetingBtn.addEventListener("click", function (event) {
 });
 
 const create_signaling_server = (user, meeting) => {
-    socket = io.connect();
+    socket = io(SOCKET_URL);
     socket.on("connect", () => {
         if (socket.connected) {
             socket.emit("user_joined_meeting_room", {

@@ -7,9 +7,11 @@ const meeting_id = path.replace("/", "");
 console.log(meeting_id);
 
 var socket;
+//const SOCKET_URL = "http://localhost:8005";
+const SOCKET_URL = "https://meet-server-nine.vercel.app";
 
 const create_signaling_server = (user, meeting) => {
-  socket = io();
+  socket = io(SOCKET_URL);
   socket.on("connect", () => {
     if (socket.connected) {
       socket.emit("user_joined_meeting_room", {
