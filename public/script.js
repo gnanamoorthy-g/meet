@@ -1,39 +1,54 @@
 import Participant from "./participant.js";
-import MeetingRoom from "./room.js";
 import { random_name_generator } from "./utils.js";
 
 const path = window.location.pathname;
 const meeting_id = path.replace("/", "");
-console.log(meeting_id);
 
 var socket;
-//const SOCKET_URL = "http://localhost:8005";
-const SOCKET_URL = "https://meet-server-nine.vercel.app";
+var meeting_room;
+const SOCKET_URL = "http://localhost:8005";
+//const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 
-const create_signaling_server = (user, meeting) => {
-  socket = io(SOCKET_URL);
+const create_signaling_server = (user, meeting_room) => {
+  socket = io(SOCKET_URL, { autoConnect: true });
   socket.on("connect", () => {
-    if (socket.connected) {
-      socket.emit("user_joined_meeting_room", {
-        user,
-        meeting,
-      });
-    }
+    console.log(socket, "socket");
+    console.log(socket.id,"sessionID");
+
+    socket.emit("poll_meeting",{ meeting_id, connectionId : socket.id });
+
+    socket.on('get_meeting_room',(data)=>{
+      let { room } = data;
+      meeting_room = room;
+      console.log(meeting_room,"room");
+      if (socket.connected) {
+        socket.emit("user_joined_meeting_room", {
+          user,
+          meeting_room,
+        });
+      }
+    });
+  });
+  socket.on("disconnect", (reason) => {
+    socket.emit("exit_user_from_room", {
+      user: currentUser,
+      meeting_room,
+    });
+    console.log(reason, "reason");
   });
   socket.on("notify_participants", (data) => {
     console.log(data, "notification");
+    meeting_room = data;
+
   });
 };
-
-const meeting = new MeetingRoom();
-meeting.room_id = meeting_id;
 
 let currentUser = JSON.parse(localStorage.getItem("user_info"));
 if (!currentUser) {
   currentUser = new Participant(...random_name_generator());
   localStorage.setItem("user_info", JSON.stringify(currentUser));
 }
-create_signaling_server(currentUser, meeting);
+create_signaling_server(currentUser, meeting_room);
 const video = document.getElementById("video_player");
 
 const constraints = {
