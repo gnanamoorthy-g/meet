@@ -9,6 +9,43 @@ var meeting_room;
 const SOCKET_URL = "http://localhost:8005";
 //const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 
+let currentUser = JSON.parse(localStorage.getItem("user_info"));
+if (!currentUser) {
+  currentUser = new Participant(...random_name_generator());
+  localStorage.setItem("user_info", JSON.stringify(currentUser));
+}
+
+
+const micBtn = document.querySelector('#mic_btn');
+const videoBtn = document.querySelector('#video_btn');
+const screenShareBtn = document.querySelector('#screen_share_btn');
+const disconnectBtn = document.querySelector('#disconnect_btn');
+
+micBtn.addEventListener('click',function(event){
+  this.classList.toggle("btn-disabled");
+  currentUser.isMicEnabled = !currentUser.isMicEnabled;
+});
+
+videoBtn.addEventListener('click',function(event){
+  this.classList.toggle("btn-disabled");
+  currentUser.isCameraEnabled = !currentUser.isCameraEnabled;
+});
+
+screenShareBtn.addEventListener('click',function(event){
+  this.classList.toggle("btn-disabled");
+  currentUser.isSharingScreen = !currentUser.isSharingScreen;
+});
+
+disconnectBtn.addEventListener('click',function(event){
+  if(!socket) return;
+  socket.emit("exit_user_from_room", {
+    user: currentUser,
+    meeting_id,
+  });
+  const { origin } = window.location;
+  window.location.replace(origin);
+});
+
 const create_signaling_server = (user, meeting_room) => {
   socket = io(SOCKET_URL, { autoConnect: true });
   socket.on("connect", () => {
@@ -39,21 +76,17 @@ const create_signaling_server = (user, meeting_room) => {
   socket.on("notify_participants", (data) => {
     console.log(data, "notification");
     meeting_room = data;
+    render_meeting(meeting_room);
 
   });
 };
-
-let currentUser = JSON.parse(localStorage.getItem("user_info"));
-if (!currentUser) {
-  currentUser = new Participant(...random_name_generator());
-  localStorage.setItem("user_info", JSON.stringify(currentUser));
-}
 create_signaling_server(currentUser, meeting_room);
-const video = document.getElementById("video_player");
+
+const video_self = document.getElementById("video_self");
 
 const constraints = {
-  audio: true,
-  video: true,
+  audio: currentUser.isMicEnabled || false,
+  video: currentUser.isCameraEnabled || true,
 };
 
 navigator.mediaDevices
@@ -64,7 +97,7 @@ navigator.mediaDevices
     stream.onremovetrack = () => {
       console.log("Stream ended");
     };
-    video.srcObject = stream;
+    video_self.srcObject = stream;
   })
   .catch((error) => {
     if (error.name === "OverconstrainedError") {
@@ -83,3 +116,20 @@ navigator.mediaDevices
 window.addEventListener("beforeunload", (event) => {
   socket.close();
 });
+
+const render_meeting = (meeting) => {
+  const container = document.getElementById("canvas_container");
+  container.innerHTML = null;
+  const {participants = []} = meeting;
+  const otherParticipants = participants.filter(p => p.id !== currentUser.id);
+  const participant_stream_nodes = [video_self];
+  otherParticipants.forEach((participant, index) =>{
+    if(participant.id === currentUser.id) return;
+    const video = document.createElement('video');
+    video.id = participant.id;
+    video.crossOrigin = 'anonymous';
+    video.autoplay = true;
+    participant_stream_nodes.push(video);
+  });
+  container.append(...participant_stream_nodes);
+}

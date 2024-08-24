@@ -8,7 +8,7 @@ class Participant {
         this.id = Participant.generateUserId();
         this.firstName = firstName;
         this.lastName = lastName;
-        this.isMicEnabled = false;
+        this.isMicEnabled = true;
         this.isCameraEnabled = false;
         this.isSharingScreen = false;
     }
