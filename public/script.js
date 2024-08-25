@@ -9,8 +9,8 @@ var meeting_room;
 let localStream;
 let remoteStream;
 let peerConnection;
-const SOCKET_URL = "http://localhost:8005";
-//const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
+//const SOCKET_URL = "http://localhost:8005";
+const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 
 let currentUser = JSON.parse(localStorage.getItem("user_info"));
 if (!currentUser) {
