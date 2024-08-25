@@ -5,8 +5,8 @@ const timeElement = document.querySelector(".time");
 timeElement.innerHTML = new Date();
 
 var socket;
-//const SOCKET_URL = "http://localhost:8005";
-const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
+const SOCKET_URL = "http://192.168.29.138:8005";
+//const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 var createRoomTimer;
 
 let currentUser = JSON.parse(localStorage.getItem("user_info"));
