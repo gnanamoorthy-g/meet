@@ -6,6 +6,9 @@ const meeting_id = path.replace("/", "");
 
 var socket;
 var meeting_room;
+let localStream;
+let remoteStream;
+let peerConnection;
 const SOCKET_URL = "http://localhost:8005";
 //const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 
@@ -15,7 +18,7 @@ if (!currentUser) {
   localStorage.setItem("user_info", JSON.stringify(currentUser));
 }
 
-
+const video_self = document.getElementById("video_self");
 const micBtn = document.querySelector('#mic_btn');
 const videoBtn = document.querySelector('#video_btn');
 const screenShareBtn = document.querySelector('#screen_share_btn');
@@ -46,8 +49,140 @@ disconnectBtn.addEventListener('click',function(event){
   window.location.replace(origin);
 });
 
+const initializeLocalStream = async () => {
+  const constraints = {
+    audio: currentUser.isMicEnabled || false,
+    video: currentUser.isCameraEnabled || true,
+  };
+  localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  const videoTracks = localStream.getVideoTracks();
+  console.log(videoTracks, "videoTracks");
+  video_self.srcObject = localStream;
+  localStream.onremovetrack = () => {
+    console.log("Stream ended");
+  };
+};
+
+const processIceCandidate = (sdp_func,candidate,connectionId) =>{
+  if(sdp_func && sdp_func instanceof Function) sdp_func(candidate,connectionId);
+}
+
+const handleIncomingSDP = async (sdp_func, message, from) => {
+  if (!peerConnection) {
+    peerConnection = new RTCPeerConnection(servers);
+    remoteStream = new MediaStream();
+    peerConnection.ontrack = (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+        remoteStream.addTrack(track);
+      });
+      const remoteVideo = document.getElementById(from);
+      if (remoteVideo) {
+        remoteVideo.srcObject = remoteStream;
+      } else {
+        const newVideo = document.createElement("video");
+        newVideo.id = from;
+        newVideo.srcObject = remoteStream;
+        newVideo.autoplay = true;
+        document.getElementById("canvas_container").appendChild(newVideo);
+      }
+    };
+  }
+  if (message.offer) {
+    await peerConnection.setRemoteDescription(
+      new RTCSessionDescription(message.offer)
+    );
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    sdp_func(JSON.stringify({ answer: peerConnection.localDescription }), from);
+  } else if (message.answer) {
+    await peerConnection.setRemoteDescription(
+      new RTCSessionDescription(message.answer)
+    );
+  } else if (message.iceCandidate) {
+    try {
+      await peerConnection.addIceCandidate(
+        new RTCIceCandidate(message.iceCandidate)
+      );
+    } catch (e) {
+      console.error("Error adding received ICE candidate", e);
+    }
+  }
+};
+
+const createOffer = async (sdp_func,connectionId) =>{
+  peerConnection = new RTCPeerConnection(servers);
+  remoteStream = new MediaStream();
+
+  localStream.getTracks().forEach((track) => {
+    peerConnection.addTrack(track,localStream);
+  });
+
+  peerConnection.ontrack = (event) => {
+    event.streams[0].getTracks().forEach((track) => {
+      remoteStream.addTrack(track);
+    });
+    const remoteVideo = document.getElementById(connectionId);
+    if(remoteVideo) remoteVideo.srcObject = remoteStream;
+  };
+
+  peerConnection.onicecandidate = async (event) => {
+    if(event.candidate){
+      console.log("New ICE candidate:: ", event.candidate);
+      let candidate = JSON.stringify({iceCandidate : event.candidate});
+      processIceCandidate(sdp_func,candidate,connectionId);
+    }
+  }
+
+  peerConnection.onnegotiationneeded = async (event) => {
+    let offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    console.log("offer :: ", offer);
+    if(sdp_func && sdp_func instanceof Function){
+      sdp_func(JSON.stringify({offer : peerConnection.localDescription}),connectionId);
+    }
+  };
+}
+
+const initMeeting = async (meeting_room,sdp_func, connectionId,) => {
+  await initializeLocalStream();
+  createOffer(sdp_func,connectionId);
+}
+
+const render_meeting = (meeting) => {
+  const container = document.getElementById("canvas_container");
+  container.innerHTML = null;
+  const {participants = []} = meeting;
+  const otherParticipants = participants.filter(p => p.id !== currentUser.id);
+  const participant_stream_nodes = [video_self];
+  otherParticipants.forEach((participant, index) =>{
+    if(participant.id === currentUser.id) return;
+    const video = document.createElement('video');
+    video.id = participant.connectionId;
+    video.crossOrigin = 'anonymous';
+    video.autoplay = true;
+    participant_stream_nodes.push(video);
+  });
+  container.append(...participant_stream_nodes);
+}
+
+const servers = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun.l.google.com:5349" },
+  ],
+};
+
 const create_signaling_server = (user, meeting_room) => {
   socket = io(SOCKET_URL, { autoConnect: true });
+
+  var SDP_function = (data, connection_id) =>{
+    socket.emit("SDP_PROCESS",{
+      message : data,
+      meeting_id : meeting_id,
+      to : connection_id
+    })
+  };
+
   socket.on("connect", () => {
     console.log(socket, "socket");
     console.log(socket.id,"sessionID");
@@ -58,6 +193,7 @@ const create_signaling_server = (user, meeting_room) => {
       let { room } = data;
       meeting_room = room;
       console.log(meeting_room,"room");
+      initMeeting(meeting_room,SDP_function,socket.id);
       if (socket.connected) {
         socket.emit("user_joined_meeting_room", {
           user,
@@ -73,63 +209,35 @@ const create_signaling_server = (user, meeting_room) => {
     });
     console.log(reason, "reason");
   });
-  socket.on("notify_participants", (data) => {
-    console.log(data, "notification");
+
+  socket.on("sync_meeting_info",(data) => {
+    console.log(data, "meeting_synced for self");
     meeting_room = data;
+    render_meeting(meeting_room);
+  });
+
+  socket.on("notify_participants", (data) => {
+    let { meeting, new_connection_id, joined_user} = data;
+    console.log(" *** new user :: " + joined_user.firstName + "  joined");
+    console.log(data, "notification");
+    meeting_room = meeting;
+    createOffer(SDP_function,new_connection_id);
     render_meeting(meeting_room);
 
   });
-};
-create_signaling_server(currentUser, meeting_room);
+  socket.on("SDP_PROCESS", async (data) =>{
+    let { message , from} = data;
+    message = JSON.parse(message);
+    if(message.offer){
 
-const video_self = document.getElementById("video_self");
-
-const constraints = {
-  audio: currentUser.isMicEnabled || false,
-  video: currentUser.isCameraEnabled || true,
-};
-
-navigator.mediaDevices
-  .getUserMedia(constraints)
-  .then((stream) => {
-    const videoTracks = stream.getVideoTracks();
-    console.log(videoTracks, "videoTracks");
-    stream.onremovetrack = () => {
-      console.log("Stream ended");
-    };
-    video_self.srcObject = stream;
-  })
-  .catch((error) => {
-    if (error.name === "OverconstrainedError") {
-      console.error(
-        `The resolution ${constraints.video.width.exact}x${constraints.video.height.exact} px is not supported by your device.`
-      );
-    } else if (error.name === "NotAllowedError") {
-      console.error(
-        "You need to grant this page permission to access your camera and microphone."
-      );
-    } else {
-      console.error(`getUserMedia error: ${error.name}`, error);
     }
-  });
+    console.log(data,"On server event --");
+    await handleIncomingSDP(SDP_function,message, from);
+  })
+};
+
+create_signaling_server(currentUser, meeting_room);
 
 window.addEventListener("beforeunload", (event) => {
   socket.close();
 });
-
-const render_meeting = (meeting) => {
-  const container = document.getElementById("canvas_container");
-  container.innerHTML = null;
-  const {participants = []} = meeting;
-  const otherParticipants = participants.filter(p => p.id !== currentUser.id);
-  const participant_stream_nodes = [video_self];
-  otherParticipants.forEach((participant, index) =>{
-    if(participant.id === currentUser.id) return;
-    const video = document.createElement('video');
-    video.id = participant.id;
-    video.crossOrigin = 'anonymous';
-    video.autoplay = true;
-    participant_stream_nodes.push(video);
-  });
-  container.append(...participant_stream_nodes);
-}
