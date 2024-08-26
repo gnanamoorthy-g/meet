@@ -43,18 +43,41 @@ const displayMediaOptions = {
 };
 
 micBtn.addEventListener('click',function(event){
-  this.classList.toggle("btn-disabled");
+  const icons = { active : "mic",inActive : "mic_off" };
+  let span = this.querySelector('span');
   currentUser.isMicEnabled = !currentUser.isMicEnabled;
+  const audioTrack = localStream.getAudioTracks()[0];
+  audioTrack.enabled = !audioTrack.enabled;
+  this.classList.toggle("btn-disabled");
+  span.innerHTML = audioTrack.enabled ? icons.active :  icons.inActive;
 });
 
 videoBtn.addEventListener('click',function(event){
-  this.classList.toggle("btn-disabled");
+  const icons = { active : "videocam",inActive : "videocam_off" };
+  let span = this.querySelector('span');
   currentUser.isCameraEnabled = !currentUser.isCameraEnabled;
+  const videoTracks = localStream.getVideoTracks()[0];
+  videoTracks.enabled = !videoTracks.enabled;
+  this.classList.toggle("btn-disabled");
+  span.innerHTML = videoTracks.enabled ? icons.active :  icons.inActive;
 });
 
 screenShareBtn.addEventListener('click',async function(event){
-  this.classList.toggle("btn-disabled");
+  const icons = { active : "screen_share",inActive : "stop_screen_share" };
   currentUser.isSharingScreen = !currentUser.isSharingScreen;
+  let mediaStream;
+  if(currentUser.isSharingScreen){
+    try{
+      mediaStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+      console.log(mediaStream,"mediaStream");
+    }
+    catch(err){
+      console.error(`Error: ${err}`);
+    }
+  }
+  let span = this.querySelector('span');
+  this.classList.toggle("btn-disabled");
+  span.innerHTML = currentUser.isSharingScreen ? icons.active :  icons.inActive;
 });
 
 disconnectBtn.addEventListener('click',function(event){
@@ -71,8 +94,8 @@ disconnectBtn.addEventListener('click',function(event){
 
 const initializeLocalStream = async () => {
   const constraints = {
-    audio: currentUser.isMicEnabled || false,
-    video: currentUser.isCameraEnabled || true,
+    audio: currentUser.isMicEnabled || true,
+    video: currentUser.isCameraEnabled || false,
   };
   try {
     localStream = await navigator.mediaDevices.getUserMedia(constraints);

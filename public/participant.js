@@ -9,7 +9,7 @@ class Participant {
         this.firstName = firstName;
         this.lastName = lastName;
         this.isMicEnabled = true;
-        this.isCameraEnabled = false;
+        this.isCameraEnabled = true;
         this.isSharingScreen = false;
     }
 };
