@@ -26,6 +26,20 @@ const videoBtn = document.querySelector('#video_btn');
 const screenShareBtn = document.querySelector('#screen_share_btn');
 const disconnectBtn = document.querySelector('#disconnect_btn');
 
+const displayMediaOptions = {
+  video: {
+    displaySurface: "browser",
+  },
+  audio: {
+    suppressLocalAudioPlayback: false,
+  },
+  preferCurrentTab: false,
+  selfBrowserSurface: "exclude",
+  systemAudio: "include",
+  surfaceSwitching: "include",
+  monitorTypeSurfaces: "include",
+};
+
 micBtn.addEventListener('click',function(event){
   this.classList.toggle("btn-disabled");
   currentUser.isMicEnabled = !currentUser.isMicEnabled;
@@ -36,7 +50,7 @@ videoBtn.addEventListener('click',function(event){
   currentUser.isCameraEnabled = !currentUser.isCameraEnabled;
 });
 
-screenShareBtn.addEventListener('click',function(event){
+screenShareBtn.addEventListener('click',async function(event){
   this.classList.toggle("btn-disabled");
   currentUser.isSharingScreen = !currentUser.isSharingScreen;
 });
@@ -58,16 +72,21 @@ const initializeLocalStream = async () => {
     audio: currentUser.isMicEnabled || false,
     video: currentUser.isCameraEnabled || true,
   };
-  localStream = await navigator.mediaDevices.getUserMedia(constraints);
-  console.log("localStream is ::::: " ,localStream);
-  const videoTracks = localStream.getVideoTracks();
-  console.log(videoTracks, "videoTracks");
-  video_self.srcObject = localStream;
-  if(localStream){
-    localStream.onremovetrack = () => {
-      console.log("Stream ended");
-    };
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    console.log("localStream is ::::: ", localStream);
+    const videoTracks = localStream.getVideoTracks();
+    console.log(videoTracks, "videoTracks");
+    video_self.srcObject = localStream;
+    if (localStream) {
+      localStream.onremovetrack = () => {
+        console.log("Stream ended");
+      };
+    }
+  } catch (e) {
+    console.log(e,"error");
   }
+  
 };
 
 initializeLocalStream();
@@ -114,14 +133,6 @@ const createNewConnection = async (sdp_func,connection_id) => {
       peerConnection.addTrack(track,localStream);
     });
   }
-  
-  peerConnection.onicecandidate = async (event) => {
-    console.log("New ICE candidate:: ", event.candidate);
-    if(event.candidate){
-      console.log(" *** gathering candidate finished ***");
-      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
-    }
-  }
 
   peerConnection.ontrack = (event) => {
     console.log("********onTrack****",event);
@@ -131,6 +142,14 @@ const createNewConnection = async (sdp_func,connection_id) => {
     const remoteVideo = document.getElementById(connection_id);
     if(remoteVideo) remoteVideo.srcObject = remoteStream;
   };
+  
+  peerConnection.onicecandidate = async (event) => {
+    console.log("New ICE candidate:: ", event.candidate);
+    if(event.candidate){
+      console.log(" *** gathering candidate finished ***");
+      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
+    }
+  }
 
   let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
@@ -152,8 +171,6 @@ const acceptAnswerForOffer = async (answer,sdp_func,connection_id) => {
     remoteStreams[connection_id] = remoteStream;
   }
 
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-
   peerConnection.ontrack = (event) => {
     console.log("********onTrack****",event);
     event.streams[0].getTracks().forEach((track) => {
@@ -161,6 +178,16 @@ const acceptAnswerForOffer = async (answer,sdp_func,connection_id) => {
     });
     const remoteVideo = document.getElementById(connection_id);
     if(remoteVideo) remoteVideo.srcObject = remoteStream;
+  };
+
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+
+  peerConnection.onicecandidate = async (event) => {
+    console.log("New ICE candidate:: ", event.candidate);
+    if(event.candidate){
+      console.log(" *** gathering candidate finished ***");
+      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
+    }
   };
 }
 
@@ -184,6 +211,15 @@ const createAnswerForOffer = async (offer,sdp_func,connection_id) =>{
     });
   }
 
+  peerConnection.ontrack = (event) => {
+    console.log("********onTrack****",event);
+    event.streams[0].getTracks().forEach((track) => {
+      remoteStream.addTrack(track);
+    });
+    const remoteVideo = document.getElementById(connection_id);
+    if (remoteVideo) remoteVideo.srcObject = remoteStream;
+  };
+
   await peerConnection.setRemoteDescription( new RTCSessionDescription(offer));
 
   peerConnection.onicecandidate = async (event) => {
@@ -192,15 +228,6 @@ const createAnswerForOffer = async (offer,sdp_func,connection_id) =>{
       console.log(" *** gathering candidate finished ***");
       sdp_func('on_new_ice_candidate',event.candidate,connection_id);
     }
-  };
-
-  peerConnection.ontrack = (event) => {
-    console.log("********onTrack****",event);
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-    const remoteVideo = document.getElementById(connection_id);
-    if (remoteVideo) remoteVideo.srcObject = remoteStream;
   };
 
   let answer = await peerConnection.createAnswer();
