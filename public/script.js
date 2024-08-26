@@ -12,8 +12,8 @@ var exitRoomTimer
 const peerConnections = {}; // Key: connectionId, Value: RTCPeerConnection
 const remoteStreams = {};   // Key: connectionId, Value: MediaStream
 
-const SOCKET_URL = "http://192.168.29.138:8005";
-//const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
+//const SOCKET_URL = "http://192.168.29.138:8005";
+const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
 
 let currentUser = JSON.parse(localStorage.getItem("user_info"));
 if (!currentUser) {
