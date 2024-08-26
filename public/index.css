@@ -1,52 +1,109 @@
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
+body, h1, h2, h3, p, ul {
+    margin: 0;
+    padding: 0;
 }
 
-.header_title,
-.header_utils {
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
     display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: 100vh;
+}
+
+
+header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 20px;
+    text-align: center;
+    color: white;
+}
+
+header h1 {
+    font-size: 2.5em;
+    margin-bottom: 0.5em;
+}
+
+header p {
+    font-size: 1.2em;
+    margin-bottom: 0.5em;
+}
+
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2em;
+    }
+
+    .features {
+        flex-direction: column;
+        align-items: center;
+    }
 }
 
 main {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 93vh;
+    height: calc(100% - 100px);
+}
+
+main > *{
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+footer {
+    background: #667eea;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+    font-size: 0.9em;
+}
+
+footer a {
+    color: white;
+    text-decoration: none;
 }
 
 .create_meeting {
-    background-color: #EA4C89;
-    border-radius: 8px;
-    border-style: none;
-    box-sizing: border-box;
-    color: #FFFFFF;
-    cursor: pointer;
-    display: inline-block;
-    font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    height: 40px;
-    line-height: 20px;
-    list-style: none;
-    margin: 0;
-    outline: none;
-    padding: 10px 16px;
-    position: relative;
-    text-align: center;
-    text-decoration: none;
-    transition: color 100ms;
-    vertical-align: baseline;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+  align-items: center;
+  background-image: linear-gradient(144deg,#AF40FF, #5B42F3 50%,#00DDEB);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: rgba(151, 65, 252, 0.2) 0 15px 30px -5px;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  display: flex;
+  font-family: Phantomsans, sans-serif;
+  font-size: 20px;
+  justify-content: center;
+  line-height: 1em;
+  max-width: 100%;
+  min-width: 140px;
+  padding: 19px 24px;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.create_meeting:hover,
-.create_meeting:focus {
-    background-color: #F082AC;
+.create_meeting:active,
+.create_meeting:hover {
+  outline: 0;
+}
+
+@media (min-width: 768px) {
+  .create_meeting {
+    font-size: 24px;
+    min-width: 196px;
+  }
 }
 
 .button__text {
@@ -84,4 +141,16 @@ main {
     to {
         transform: rotate(1turn);
     }
+}
+
+.date-time {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #764ba2;
+    text-align: center;
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }

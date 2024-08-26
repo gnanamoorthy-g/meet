@@ -7,6 +7,7 @@ const meeting_id = path.replace("/", "");
 var socket;
 var meeting_room;
 let localStream;
+let gifSrc = "https://tenor.com/en-GB/view/static-tv-static-gif-19838894";
 var exitRoomTimer
 const peerConnections = {}; // Key: connectionId, Value: RTCPeerConnection
 const remoteStreams = {};   // Key: connectionId, Value: MediaStream
@@ -16,7 +17,8 @@ const SOCKET_URL = "http://192.168.29.138:8005";
 
 let currentUser = JSON.parse(localStorage.getItem("user_info"));
 if (!currentUser) {
-  currentUser = new Participant(...random_name_generator());
+  let name = random_name_generator();
+  currentUser = new Participant(...name);
   localStorage.setItem("user_info", JSON.stringify(currentUser));
 }
 
@@ -115,7 +117,7 @@ const servers = {
   ],
 };
 
-const createNewConnection = async (sdp_func,connection_id) => {
+const createNewConnection = async (emitter,connection_id) => {
   let peerConnection;
   let remoteStream;
   peerConnection = peerConnections[connection_id];
@@ -135,10 +137,8 @@ const createNewConnection = async (sdp_func,connection_id) => {
   }
 
   peerConnection.ontrack = (event) => {
-    console.log("********onTrack****",event);
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
+    console.log("********onTrack  create new rtc****",event);
+    remoteStream = event.streams[0]
     const remoteVideo = document.getElementById(connection_id);
     if(remoteVideo) remoteVideo.srcObject = remoteStream;
   };
@@ -147,16 +147,16 @@ const createNewConnection = async (sdp_func,connection_id) => {
     console.log("New ICE candidate:: ", event.candidate);
     if(event.candidate){
       console.log(" *** gathering candidate finished ***");
-      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
+      emitter('on_new_ice_candidate',event.candidate,connection_id);
     }
   }
 
   let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
-  sdp_func('send_offer',offer,connection_id);
+  emitter('send_offer',offer,connection_id);
 }
 
-const acceptAnswerForOffer = async (answer,sdp_func,connection_id) => {
+const acceptAnswerForOffer = async (answer,emitter,connection_id) => {
   console.log(" **** sdp answer received ::",answer);
   let peerConnection;
   let remoteStream;
@@ -172,7 +172,7 @@ const acceptAnswerForOffer = async (answer,sdp_func,connection_id) => {
   }
 
   peerConnection.ontrack = (event) => {
-    console.log("********onTrack****",event);
+    console.log("********onTrack --answer received****",event);
     event.streams[0].getTracks().forEach((track) => {
       remoteStream.addTrack(track);
     });
@@ -186,12 +186,12 @@ const acceptAnswerForOffer = async (answer,sdp_func,connection_id) => {
     console.log("New ICE candidate:: ", event.candidate);
     if(event.candidate){
       console.log(" *** gathering candidate finished ***");
-      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
+      emitter('on_new_ice_candidate',event.candidate,connection_id);
     }
   };
 }
 
-const createAnswerForOffer = async (offer,sdp_func,connection_id) =>{
+const createAnswerForOffer = async (offer,emitter,connection_id) =>{
   console.log(" **** offer received ::",offer);
   let peerConnection;
   let remoteStream;
@@ -212,7 +212,7 @@ const createAnswerForOffer = async (offer,sdp_func,connection_id) =>{
   }
 
   peerConnection.ontrack = (event) => {
-    console.log("********onTrack****",event);
+    console.log("********onTrack --created answer****",event);
     event.streams[0].getTracks().forEach((track) => {
       remoteStream.addTrack(track);
     });
@@ -226,14 +226,14 @@ const createAnswerForOffer = async (offer,sdp_func,connection_id) =>{
     console.log("New ICE candidate:: ", event.candidate);
     if(event.candidate){
       console.log(" *** gathering candidate finished ***");
-      sdp_func('on_new_ice_candidate',event.candidate,connection_id);
+      emitter('on_new_ice_candidate',event.candidate,connection_id);
     }
   };
 
   let answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
   console.log("answer :: ", answer);
-  sdp_func("send_answer", answer, connection_id);
+  emitter("send_answer", answer, connection_id);
 }
 
 const addIceCandidate = (candidate, connection_id) => {
@@ -256,7 +256,7 @@ const addIceCandidate = (candidate, connection_id) => {
 const create_signaling_server = (user, meeting_room) => {
   socket = io(SOCKET_URL, { autoConnect: true });
 
-  var SDP_function = (event,data, connection_id) =>{
+  var signalEmitter = (event,data, connection_id) =>{
     socket.emit(event,{
       message : data,
       meeting_id : meeting_id,
@@ -302,7 +302,8 @@ const create_signaling_server = (user, meeting_room) => {
     console.log(" *** new user :: " + joined_user.firstName + "  joined");
     meeting_room = meeting;
     render_meeting(meeting_room);
-    createNewConnection(SDP_function,new_connection_id);
+    if(joined_user.id === currentUser.id) return;
+    createNewConnection(signalEmitter,new_connection_id);
   });
 
   socket.on("notify_participants_about_exited_user", (data) => {
@@ -315,13 +316,13 @@ const create_signaling_server = (user, meeting_room) => {
   socket.on("receive_offer",(data) => {
     console.log(" *** offer received :: ",data);
     let { message , from} = data;
-    createAnswerForOffer(message,SDP_function,from);
+    createAnswerForOffer(message,signalEmitter,from);
   });
 
   socket.on("receive_answer",(data) => {
     console.log(" *** answer received :: ",data);
     let { message , from} = data;
-    acceptAnswerForOffer(message,SDP_function,from);
+    acceptAnswerForOffer(message,signalEmitter,from);
   });
 
   socket.on("receive_ice_candidate", (data) => {

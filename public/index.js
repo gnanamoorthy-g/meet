@@ -1,9 +1,6 @@
 import Participant from "./participant.js";
 import MeetingRoom from "./room.js";
 
-const timeElement = document.querySelector(".time");
-timeElement.innerHTML = new Date();
-
 var socket;
 const SOCKET_URL = "http://192.168.29.138:8005";
 //const SOCKET_URL = "https://meet-socket-server.adaptable.app/";
@@ -46,10 +43,21 @@ const create_signaling_server = (user,meeting_room) => {
 };
 
 const updateTime = () => {
-  let curTime = new Date();
-  timeElement.innerHTML = curTime;
+  const timeElement = document.querySelector(".date-time");
+  const now = new Date();
+  const options = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  };
+  timeElement.textContent = now.toLocaleDateString("en-US", options);
 };
-const timeUpdateInterval = setInterval(updateTime, 60000);
+updateTime();
+const timeUpdateInterval = setInterval(updateTime, 1000);
 window.addEventListener("beforeunload", (event) => {
   if(socket) socket.close();
   clearTimeout(createRoomTimer);
